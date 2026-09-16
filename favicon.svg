@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="guardedverse">
+  <title>guardedverse</title>
+  <!-- Three linked nodes: structure, resampling, modelling. Explicit width and
+       height matter here: without them the navbar renders this a few pixels wide. -->
+  <line x1="16" y1="20" x2="48" y2="20" stroke="#4C78A8" stroke-width="4" stroke-linecap="round"/>
+  <line x1="16" y1="20" x2="16" y2="44" stroke="#2A7F62" stroke-width="4" stroke-linecap="round"/>
+  <line x1="16" y1="44" x2="48" y2="44" stroke="#B85C2E" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="16" cy="20" r="7" fill="#4C78A8"/>
+  <circle cx="48" cy="20" r="7" fill="#2A7F62"/>
+  <circle cx="16" cy="44" r="7" fill="#2A7F62"/>
+  <circle cx="48" cy="44" r="7" fill="#B85C2E"/>
+</svg>

@@ -1,0 +1,137 @@
+---
+title: "Leakage, concretely"
+description: "A working taxonomy of leakage mechanisms, and which tool addresses each one."
+---
+
+"Data leakage" gets used for several unrelated failures. Separating them is
+useful, because they have different symptoms and different fixes — and because
+a tool that handles one of them is not thereby handling the others.
+
+## The mechanisms
+
+### Preprocessing leakage
+
+A transformation is estimated on data that includes the test fold, then applied
+to both sides. Global median imputation, z-scoring against the full matrix,
+variance filtering before splitting, and — worst of the family — univariate
+feature selection against the outcome across all samples.
+
+*Symptom:* performance degrades sharply when the pipeline is rerun with
+preprocessing moved inside the resampling loop. With aggressive feature
+selection on wide data, the drop can be most of the apparent signal.
+
+*Addressed by:* `bioLeak::fit_resample()` and `bioLeak::impute_guarded()`
+re-estimate preprocessing inside each training fold; `fastml()` keeps
+preprocessing inside the resampling path for the workflows it fits.
+
+### Dependence leakage
+
+Samples in the training set are not independent of samples in the test set.
+Repeated measures on the same subject, technical replicates, samples from the
+same batch or sequencing run, patients from the same site, or near-duplicate
+rows.
+
+*Symptom:* held-out performance is good, but performance on a genuinely new
+subject, batch or site collapses. This is the mechanism that most often survives
+peer review.
+
+*Addressed by:* `splitGraph` makes the dependency structure explicit and derives
+what it implies for splitting; `bioLeak::make_split_plan()` builds folds that
+respect it; `bioLeak::check_split_overlap()` verifies they did.
+
+### Temporal leakage
+
+The model trains on data recorded after what it is asked to predict. Common
+whenever samples carry a collection date and the split ignores it, and in
+clinical data where a measurement is only ordered once a diagnosis is suspected.
+
+*Symptom:* excellent retrospective performance, no prospective performance.
+
+*Addressed by:* `splitGraph` models `Timepoint` nodes and precedence edges;
+`bioLeak::make_split_plan(mode = "time_series")` supports `horizon`, `purge` and
+`embargo` gaps.
+
+### Target leakage
+
+A predictor is a proxy for, or a consequence of, the outcome. A treatment code
+that only exists post-diagnosis, an identifier correlated with case status, a
+derived feature computed from the label.
+
+*Symptom:* implausibly high performance, usually attributable to one or two
+features.
+
+*Addressed by:* `bioLeak::audit_leakage()` runs univariate and multivariate
+target-leakage scans. Excluding identifier columns (`fastml(exclude = )`) is the
+cheap first defence.
+
+### Group-structure confounding
+
+Not leakage between folds, but between variables: the outcome is associated with
+a batch or site, so a model that learns batch learns the outcome. The split can
+be perfectly clean and the result still meaningless.
+
+*Symptom:* a batch-association test is significant; performance is explained as
+well by batch as by biology.
+
+*Addressed by:* `bioLeak::audit_leakage()` runs batch and fold association
+tests; `bioLeak::confounder_sensitivity()` quantifies how much the estimate
+moves when a confounder is controlled.
+
+## Coverage map
+
+| Mechanism | splitGraph | bioLeak | fastml |
+|---|:--:|:--:|:--:|
+| Preprocessing leakage | | ● | ● |
+| Dependence leakage | ● | ● | ○ |
+| Temporal leakage | ● | ● | ○ |
+| Target leakage | | ● | ○ |
+| Group-structure confounding | ○ | ● | |
+
+: ● directly addressed  ○ partially, or only when configured {tbl-colwidths="[40,20,20,20]"}
+
+The blank cells are the honest part. `fastml` will not tell you that your
+`patient_id` column is a proxy for the outcome, and `splitGraph` will not notice
+that you z-scored the matrix before you built the graph.
+
+## Glossary
+
+The three packages use these terms consistently. Where a term has a wider
+meaning in the literature, the sense used here is the narrower one.
+
+**Block** — a coarser grouping than the splitting unit, which ideally should not
+straddle a fold. In a `split_spec`, `block_vars`.
+
+**Embargo** — in time-ordered evaluation, a gap after the test window during
+which training samples are also excluded.
+
+**Guarded** — a workflow in which preprocessing and fitting are re-estimated
+within each resampling split, rather than once over the whole dataset.
+
+**Group / splitting unit** — the entity that must stay on one side of a split.
+Usually a subject; sometimes a study or a site. In a `split_spec`, `group_var`.
+
+**LSI (leakage severity index)** — bioLeak's summary of how much apparent
+performance is attributable to a leakage mechanism. `delta_lsi()` compares two
+evaluations on the same data.
+
+**Permutation gap** — the difference between observed performance and
+performance under label permutation within the same resampling scheme. A gap
+near zero means the scheme is not finding signal; a large gap under a *broken*
+scheme is evidence of leakage rather than of skill.
+
+**Purge** — in time-ordered evaluation, removal of training samples whose
+information window overlaps the test window.
+
+**`split_spec`** — splitGraph's versioned, tool-agnostic description of a split:
+which column is the group, which are blocks, which is time, which is the
+stratum. Serialisable to JSON against a shipped schema.
+
+**Severed** — of a leakage finding, structurally eliminated by the split mode
+chosen, as opposed to merely unmeasured.
+
+## Further reading
+
+The packages implement ideas that are not original to them. The papers listed on
+the [Papers](papers.qmd) page cite the primary sources; the standard references
+on leakage in applied machine learning are the place to start if the taxonomy
+above is new.

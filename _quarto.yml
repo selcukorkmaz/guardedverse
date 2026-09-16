@@ -1,0 +1,54 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "guardedverse"
+  site-url: https://selcukorkmaz.github.io/guardedverse/
+  repo-url: https://github.com/selcukorkmaz/guardedverse
+  description: >
+    Three R packages for leakage-aware evaluation of biomedical machine
+    learning: splitGraph, bioLeak, and fastml.
+  favicon: favicon.svg
+  open-graph: true
+  navbar:
+    logo: favicon.svg
+    title: guardedverse
+    left:
+      - href: index.qmd
+        text: Home
+      - href: packages.qmd
+        text: Packages
+      - href: get-started.qmd
+        text: Get started
+      - href: leakage.qmd
+        text: Leakage
+      - href: papers.qmd
+        text: Papers
+      - href: news.qmd
+        text: News
+    right:
+      - icon: github
+        href: https://github.com/selcukorkmaz
+        aria-label: GitHub
+  page-footer:
+    left: "Selcuk Korkmaz, Department of Biostatistics, Trakya University"
+    right:
+      - text: "splitGraph"
+        href: https://selcukorkmaz.github.io/splitGraph/
+      - text: "bioLeak"
+        href: https://selcukorkmaz.github.io/bioLeak/
+      - text: "fastml"
+        href: https://selcukorkmaz.github.io/fastml/
+
+format:
+  html:
+    theme:
+      light: [cosmo, styles.scss]
+      dark: [darkly, styles.scss, styles-dark.scss]
+    toc: true
+    toc-depth: 3
+    anchor-sections: true
+    code-copy: true
+    code-overflow: wrap
+    link-external-newwindow: false

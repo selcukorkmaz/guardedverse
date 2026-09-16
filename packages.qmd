@@ -1,0 +1,129 @@
+---
+title: "The packages"
+description: "What each package is for, what it deliberately leaves alone, and where the seams are."
+---
+
+Three packages, three jobs. The division is not arbitrary: each one stops where
+its evidence stops.
+
+## splitGraph {#splitgraph}
+
+[Documentation](https://selcukorkmaz.github.io/splitGraph/) ·
+[Source](https://github.com/selcukorkmaz/splitGraph) ·
+[CRAN](https://CRAN.R-project.org/package=splitGraph)
+
+**Represent dataset structure so that leakage-relevant relationships are
+explicit, validated, and queryable.**
+
+A metadata table becomes a typed dependency graph: `Sample` nodes linked to
+`Subject`, `Batch`, `Study`, `Site`, `Region`, `Platform`, `Assay`, `Timepoint`,
+`FeatureSet` and `Outcome` nodes by typed edges. Once the structure is an
+object, it can be validated, queried, and turned into deterministic split
+constraints.
+
+| Stage | Functions |
+|---|---|
+| Build | `graph_from_metadata()`, `ingest_metadata()`, `create_nodes()`, `build_dependency_graph()` |
+| Validate | `validate_graph()`, `depgraph_validation_report()` |
+| Query | `query_node_type()`, `query_paths()`, shared-dependency helpers |
+| Derive | `derive_split_constraints()`, `pairwise_edges()` |
+| Interchange | `as_split_spec()`, `write_split_spec()`, `validate_json()`, `migrate_json()` |
+
+**What it will not do.** It does not fit models, run preprocessing, or generate
+resamples. That boundary is the point: the graph describes the dataset, and
+something else decides what to do about it.
+
+**The seam.** `as_split_spec()` produces a `split_spec` — a versioned,
+sample-keyed contract with `group_var`, `block_vars`, `time_var` and
+`stratum_var`. `write_split_spec()` serialises it to JSON against a schema
+shipped in the package, which is how a split definition reaches a Python
+collaborator without either side reimplementing the other's logic.
+
+## bioLeak {#bioleak}
+
+[Documentation](https://selcukorkmaz.github.io/bioLeak/) ·
+[Source](https://github.com/selcukorkmaz/bioLeak) ·
+[CRAN](https://CRAN.R-project.org/package=bioLeak)
+
+**Enforce leakage-resistant evaluation, then produce evidence about what is
+left.**
+
+bioLeak covers the two halves that a structural description cannot: building
+folds that actually respect the structure, and measuring how much apparent
+performance survives when the structure is controlled for.
+
+| Stage | Functions |
+|---|---|
+| Splits | `make_split_plan()`, `check_split_overlap()`, `as_rsample()` |
+| Guarded fitting | `fit_resample()`, `tune_resample()`, `impute_guarded()`, `guard_to_recipe()`, `predict_guard()` |
+| Auditing | `audit_leakage()`, `audit_leakage_by_learner()`, `audit_report()`, `calibration_summary()`, `confounder_sensitivity()`, `delta_lsi()`, `cv_ci()` |
+| Plots | `plot_perm_distribution()`, `plot_fold_balance()`, `plot_overlap_checks()`, `plot_calibration()`, `plot_time_acf()`, `plot_confounder_sensitivity()` |
+| Simulation | `simulate_leakage_suite()`, `benchmark_leakage_suite()` |
+
+Split modes are `subject_grouped`, `batch_blocked`, `study_loocv`,
+`time_series` (with `purge` and `embargo`), and `combined` for several axes at
+once. Guarded preprocessing means imputation, normalisation, filtering and
+feature selection are re-estimated inside each training fold rather than once
+over the whole dataset.
+
+**What it will not do.** It does not prove that a dataset is leak-free. The
+audit produces evidence — a permutation gap, an association test, a duplicate
+count — and evidence is not a proof.
+
+**The seam.** `as_rsample()` converts a `LeakSplits` object into an `rsample`
+`rset`, which is the lingua franca for everything downstream in tidymodels.
+
+## fastml {#fastml}
+
+[Documentation](https://selcukorkmaz.github.io/fastml/) ·
+[Tutorial](https://selcukorkmaz.github.io/fastml-tutorial/) ·
+[Source](https://github.com/selcukorkmaz/fastml) ·
+[CRAN](https://CRAN.R-project.org/package=fastml)
+
+**Train, tune and compare many models without letting preprocessing leak back
+in at the last step.**
+
+In fastml, *fast* refers to how quickly you can assemble a statistically valid
+workflow, not to computational shortcuts. A single `fastml()` call trains a set
+of algorithms, coordinating preprocessing, fitting and evaluation inside the
+resampling path so that the comparison between models stays honest.
+
+| Stage | Functions |
+|---|---|
+| Fit and compare | `fastml()`, `train_models()`, `availableMethods()` |
+| Explore and explain | `fastexplore()`, `fastexplain()`, `explain_dalex()`, `explain_lime()`, `explain_ale()`, `plot_ice()`, `surrogate_tree()`, `counterfactual_explain()` |
+| Inspect | `summary()`, `plot()`, `get_best_model_names()`, `get_best_workflows()` |
+| Defaults and tuning | `compare_defaults()`, `get_default_differences()`, `recommend_tuning_config()`, `estimate_tuning_time()` |
+| Persist | `save_fastml()`, `load_model()` |
+
+Built-in resampling covers `cv`, `repeatedcv`, `grouped_cv`, `blocked_cv`,
+`rolling_origin`, `nested_cv`, `boot` and `validation_split`. The `resamples =`
+argument takes an `rsample` object directly, which is how folds built upstream
+get used unchanged.
+
+**What it will not do.** It does not introduce new learning algorithms, and it
+does not modify the statistical behaviour of the engines it orchestrates
+(`recipes`, `rsample`, `parsnip`, `yardstick`). It also cannot stop you handing
+it data you already preprocessed globally — a guarded workflow only guards the
+part it runs.
+
+## How they compose
+
+| | splitGraph | bioLeak | fastml |
+|---|:--:|:--:|:--:|
+| Describes dataset structure | ● | ○ | |
+| Validates structural assumptions | ● | ○ | |
+| Builds folds | | ● | ● |
+| Guarded preprocessing inside folds | | ● | ● |
+| Post-hoc leakage evidence | | ● | |
+| Trains and compares many models | | ○ | ● |
+| Model explanation | | | ● |
+| Cross-language handoff | ● | | |
+
+: ● primary job  ○ partial or secondary {tbl-colwidths="[40,20,20,20]"}
+
+The overlap between bioLeak and fastml on fold construction is real and
+intentional. bioLeak builds folds when the split policy itself is the object of
+study; fastml builds them when you simply want a sound default and the
+modelling is the point. The [worked example](get-started.qmd) uses bioLeak's
+folds inside fastml, which is the case where you want both.

@@ -1,0 +1,205 @@
+---
+title: "Get started"
+description: "One dataset, carried through all three packages: structure, folds, models."
+---
+
+This is the end-to-end path. It is the one thing no single package site can
+show, because every step crosses a package boundary.
+
+The dataset below is deliberately tiny and synthetic so the structure is visible
+at a glance: 40 samples, 20 subjects with two samples each, spread across 5
+batches. That single fact — two samples per subject — is enough to make a
+default 5-fold CV dishonest, because every fold would train on one sample of a
+subject and test on the other.
+
+::: {.callout-note appearance="simple"}
+The code on this page was run against splitGraph 0.4.0, bioLeak 0.3.8 and
+fastml 0.7.5. It is shown rather than executed at build time so the site does
+not carry the full modelling dependency stack. For runnable, output-bearing
+versions, see `vignette("quick-start", package = "splitGraph")`,
+`vignette("bioLeak-intro", package = "bioLeak")`, and the
+[fastml tutorial](https://selcukorkmaz.github.io/fastml-tutorial/).
+:::
+
+## 0. Setup
+
+``` r
+library(splitGraph)
+library(bioLeak)
+library(fastml)
+
+set.seed(1)
+n <- 40
+
+meta <- data.frame(
+  sample_id  = paste0("S", 1:n),
+  subject_id = rep(paste0("P", 1:20), each = 2),
+  batch_id   = rep(paste0("B", 1:5), each = 8),
+  stringsAsFactors = FALSE
+)
+
+dat <- data.frame(
+  sample_id = meta$sample_id,
+  y  = factor(rep(c("case", "ctrl"), n / 2)),
+  x1 = rnorm(n), x2 = rnorm(n), x3 = rnorm(n),
+  stringsAsFactors = FALSE
+)
+```
+
+Note the separation: `meta` describes how samples relate to each other, `dat`
+holds the measurements. splitGraph only ever sees `meta`.
+
+## 1. Describe the structure — splitGraph
+
+``` r
+g <- graph_from_metadata(meta, graph_name = "demo")
+validate_graph(g)
+```
+
+`graph_from_metadata()` auto-detects canonical columns: `subject_id` becomes
+`Subject` nodes with `sample_belongs_to_subject` edges, `batch_id` becomes
+`Batch` nodes, and so on. Validation runs structural, semantic, and
+leakage-relevant checks, each finding carrying a severity.
+
+Now derive what the structure implies for splitting, and emit the spec:
+
+``` r
+con  <- derive_split_constraints(g, mode = "subject")
+spec <- as_split_spec(con, graph = g)
+
+spec$group_var    # "group_id"    -- the unit that must not be split
+spec$block_vars   # "batch_group" -- coarser axis that ideally should not straddle a fold
+```
+
+Passing `graph = g` enriches the spec with the axes the constraint did not use
+as its primary grouping, so a downstream tool can block or stratify on them
+without ever touching the graph.
+
+If a Python collaborator needs the same split, this is the handoff point:
+
+``` r
+write_split_spec(spec, "split_spec.json")
+```
+
+## 2. Build and check the folds — bioLeak
+
+The spec is a sample-keyed table. Join its role columns onto the modelling data:
+
+``` r
+sd  <- as.data.frame(spec)
+dat <- merge(dat, sd[, c("sample_id", "group_id", "batch_group")], by = "sample_id")
+```
+
+Then build folds that respect the grouping the graph derived:
+
+``` r
+sp <- make_split_plan(
+  dat,
+  outcome = "y",
+  mode    = "subject_grouped",
+  group   = spec$group_var,
+  v       = 5,
+  seed    = 1
+)
+```
+
+And — this is the step worth not skipping — confirm the folds actually honour
+the axis they claim to:
+
+``` r
+check_split_overlap(sp)
+#>   fold repeat_id      col n_overlap pass
+#> 1    1         1 group_id         0 TRUE
+#> 2    2         1 group_id         0 TRUE
+#> 3    3         1 group_id         0 TRUE
+#> 4    4         1 group_id         0 TRUE
+#> 5    5         1 group_id         0 TRUE
+```
+
+Zero overlap on every fold. A plain `vfold_cv()` on this dataset would have
+shown 20 subjects straddling the train/test boundary.
+
+::: {.gv-scope}
+`mode = "combined"` handles several axes at once, taking a `constraints` list of
+`list(type = , col = )` entries where the first element drives the folds and the
+rest act as exclusion constraints. That is how `spec$block_vars` gets enforced
+rather than merely recorded.
+:::
+
+### Optional: fit and audit inside bioLeak
+
+If the split policy itself is what you are studying, stay in bioLeak — it fits
+with train-only preprocessing and then produces evidence:
+
+``` r
+fit <- fit_resample(
+  dat[, c("x1", "x2", "x3")],
+  outcome = dat$y,
+  splits  = sp,
+  preprocess = list(
+    impute    = list(method = "median"),
+    normalize = list(method = "zscore")
+  ),
+  learner = "glmnet"
+)
+
+audit <- audit_leakage(fit, metric = "auc", B = 200)
+audit_report(audit, file = "audit.html")
+```
+
+The imputation and z-scoring are re-estimated inside each training fold. Doing
+them once on the full matrix first is the single most common way a clean-looking
+pipeline leaks.
+
+## 3. Train and compare models — fastml
+
+Convert the folds to the format the tidymodels world speaks, and hand them over
+unchanged:
+
+``` r
+rs <- as_rsample(sp, data = dat)
+#> <manual_rset> -- 5 splits
+
+model <- fastml(
+  data      = dat,
+  label     = "y",
+  algorithms = c("logistic_reg", "rand_forest", "xgboost"),
+  resamples = rs,
+  exclude   = c("sample_id", "group_id", "batch_group"),
+  seed      = 1
+)
+
+summary(model)
+```
+
+Two details carry the guarantee:
+
+- `resamples = rs` means fastml uses the folds bioLeak built rather than
+  generating its own. The structural work from step 1 survives to step 3.
+- `exclude =` drops the identifier and grouping columns from the feature set.
+  Leaving `group_id` in as a predictor would hand the model the answer — which
+  is target leakage of a particularly embarrassing kind.
+
+Then explain the winner:
+
+``` r
+fastexplain(model, method = "dalex")
+```
+
+## What each step bought you
+
+| Step | Without it | With it |
+|---|---|---|
+| splitGraph | The grouping lives in someone's head or a comment | The grouping is an object, validated, and serialisable to JSON |
+| `check_split_overlap()` | You assume the folds are clean | You know how many samples straddle each fold |
+| Guarded preprocessing | Scaling and imputation see the test fold | They are re-estimated per fold |
+| `resamples = rs` | fastml silently resamples from scratch | The upstream structure reaches the model comparison |
+| `audit_leakage()` | The AUC is the only number you have | You also have a permutation gap to compare it against |
+
+## Where to go next
+
+- [splitGraph quick start](https://selcukorkmaz.github.io/splitGraph/articles/quick-start.html) — the graph in more depth, including composite modes
+- [splitGraph adapter cookbook](https://selcukorkmaz.github.io/splitGraph/articles/adapter-cookbook.html) — writing your own `split_spec` consumer
+- [bioLeak introduction](https://selcukorkmaz.github.io/bioLeak/articles/bioLeak-intro.html) — split policies, guarded fitting, and the audit in full
+- [fastml tutorial](https://selcukorkmaz.github.io/fastml-tutorial/) — a twelve-chapter treatment of guarded resampling and model comparison
+- [Leakage, concretely](leakage.qmd) — which mechanism each tool actually addresses

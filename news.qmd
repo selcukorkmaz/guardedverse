@@ -1,0 +1,56 @@
+---
+title: "News"
+description: "Current versions and where each changelog lives."
+---
+
+Each package keeps its own changelog. This page is a pointer, not a copy — a
+mirrored changelog goes stale the first time a release happens without a site
+rebuild.
+
+| Package | Changelog | Releases | CRAN |
+|---|---|---|---|
+| splitGraph | [NEWS](https://selcukorkmaz.github.io/splitGraph/news/index.html) | [GitHub](https://github.com/selcukorkmaz/splitGraph/releases) | [CRAN](https://CRAN.R-project.org/package=splitGraph) |
+| bioLeak | [NEWS](https://selcukorkmaz.github.io/bioLeak/news/index.html) | [GitHub](https://github.com/selcukorkmaz/bioLeak/releases) | [CRAN](https://CRAN.R-project.org/package=bioLeak) |
+| fastml | [NEWS](https://selcukorkmaz.github.io/fastml/news/index.html) | [GitHub](https://github.com/selcukorkmaz/fastml/releases) | [CRAN](https://CRAN.R-project.org/package=fastml) |
+
+## Current versions
+
+Rather than a table that drifts, check what you actually have installed:
+
+``` r
+vapply(c("splitGraph", "bioLeak", "fastml"),
+       function(p) as.character(utils::packageVersion(p)),
+       character(1))
+```
+
+and what CRAN currently has:
+
+``` r
+available <- utils::available.packages()
+available[c("splitGraph", "bioLeak", "fastml"), "Version"]
+```
+
+## Compatibility
+
+The cross-package seams are narrow on purpose, which is what keeps them stable:
+
+- **splitGraph → anything.** The `split_spec` contract is versioned, and
+  `migrate_json()` handles older serialisations. A contract test in splitGraph
+  pins the fields a consumer may rely on.
+- **bioLeak → tidymodels.** `as_rsample()` produces a standard `rset`. Anything
+  that accepts an `rset` accepts bioLeak folds, including `fastml(resamples = )`.
+
+If a release breaks either seam, it will say so in that package's NEWS under a
+breaking-change heading.
+
+## Reporting problems
+
+Report against the package where the behaviour occurs:
+
+- [splitGraph issues](https://github.com/selcukorkmaz/splitGraph/issues)
+- [bioLeak issues](https://github.com/selcukorkmaz/bioLeak/issues)
+- [fastml issues](https://github.com/selcukorkmaz/fastml/issues)
+
+For something that only shows up when two packages are combined, open it against
+the *downstream* one — the package that consumed the object — and link the
+upstream call that produced it.

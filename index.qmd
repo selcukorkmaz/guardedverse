@@ -1,0 +1,189 @@
+---
+pagetitle: "guardedverse"
+toc: false
+---
+
+::: {.gv-hero}
+# Leakage-aware evaluation in R {.unnumbered}
+
+::: {.gv-tagline}
+Three R packages that make dataset structure explicit, keep it enforced through
+resampling, and hold the line through model fitting.
+:::
+:::
+
+In biomedical machine learning, most inflated performance estimates do not come
+from a coding mistake. They come from structure: samples that share a subject, a
+batch, a study, a sequencing run, or a timepoint. A default `vfold_cv()` splits
+straight through all of it, and the resulting model looks like it generalises
+when it has really only memorised a neighbour.
+
+These three packages attack that problem at three different points in the
+pipeline, and they are built to hand work to each other.
+
+::: {.gv-pipeline}
+
+```{=html}
+<div class="gv-flow" role="list" aria-label="The guardedverse pipeline">
+  <div class="gv-flow-step gv-flow--splitgraph" role="listitem">
+    <span class="gv-flow-stage">1 &#183; Structure</span>
+    <span class="gv-flow-name">splitGraph</span>
+    <span class="gv-flow-desc">dataset structure as a typed dependency graph</span>
+    <span class="gv-flow-ops">validate &#183; derive constraints</span>
+  </div>
+
+  <div class="gv-flow-arrow" aria-hidden="true">
+    <code>split_spec</code>
+    <svg viewBox="0 0 40 12" width="40" height="12" focusable="false">
+      <line x1="0" y1="6" x2="31" y2="6" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M31 1.5 L38 6 L31 10.5 z" fill="currentColor"/>
+    </svg>
+  </div>
+
+  <div class="gv-flow-step gv-flow--bioleak" role="listitem">
+    <span class="gv-flow-stage">2 &#183; Resampling</span>
+    <span class="gv-flow-name">bioLeak</span>
+    <span class="gv-flow-desc">leakage-safe folds, guarded preprocessing</span>
+    <span class="gv-flow-ops">fit &#183; tune &#183; audit</span>
+  </div>
+
+  <div class="gv-flow-arrow" aria-hidden="true">
+    <code>rsample rset</code>
+    <svg viewBox="0 0 40 12" width="40" height="12" focusable="false">
+      <line x1="0" y1="6" x2="31" y2="6" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M31 1.5 L38 6 L31 10.5 z" fill="currentColor"/>
+    </svg>
+  </div>
+
+  <div class="gv-flow-step gv-flow--fastml" role="listitem">
+    <span class="gv-flow-stage">3 &#183; Modelling</span>
+    <span class="gv-flow-name">fastml</span>
+    <span class="gv-flow-desc">train and compare many models</span>
+    <span class="gv-flow-ops">benchmark &#183; explain</span>
+  </div>
+</div>
+```
+
+::: {.gv-flow-note}
+Each stage is usable on its own. The arrows are handoffs, not requirements.
+:::
+
+:::
+
+## The packages
+
+::: {.gv-cards .column-page}
+
+::: {.gv-card .gv-card--splitgraph}
+### [splitGraph](https://selcukorkmaz.github.io/splitGraph/)
+
+::: {.gv-card-role}
+Describe the structure
+:::
+
+Represents sample provenance, repeated measures, study design, batch effects and
+temporal ordering as a typed dependency graph, then turns that graph into
+deterministic split constraints.
+
+- `graph_from_metadata()` builds the graph
+- `derive_split_constraints()` reads structure off it
+- `as_split_spec()` emits a tool-agnostic spec (R or JSON)
+
+::: {.gv-card-foot}
+Deliberately does **not** fit models or generate resamples.
+:::
+:::
+
+::: {.gv-card .gv-card--bioleak}
+### [bioLeak](https://selcukorkmaz.github.io/bioLeak/)
+
+::: {.gv-card-role}
+Enforce it, then check it
+:::
+
+Leakage-resistant split policies, preprocessing re-estimated inside every fold,
+and post-hoc evidence about how much apparent performance could be leakage.
+
+- `make_split_plan()` for subject, batch, study, time and combined axes
+- `fit_resample()` and `tune_resample()` with train-only preprocessing
+- `audit_leakage()` for permutation gaps and association tests
+
+::: {.gv-card-foot}
+`as_rsample()` hands the folds to tidymodels.
+:::
+:::
+
+::: {.gv-card .gv-card--fastml}
+### [fastml](https://selcukorkmaz.github.io/fastml/)
+
+::: {.gv-card-role}
+Model without re-introducing leakage
+:::
+
+Trains, tunes and benchmarks many models through one call, with preprocessing
+and fitting re-estimated within each resampling split rather than once up front.
+
+- `fastml()` trains and compares a whole set of algorithms
+- `resamples =` accepts folds built upstream
+- `fastexplain()` for SHAP, LIME, ALE, ICE and surrogates
+
+::: {.gv-card-foot}
+Orchestrates tidymodels engines; it does not replace them.
+:::
+:::
+
+:::
+
+## Which one do I need?
+
+| If you want to... | Reach for |
+|---|---|
+| Write down how your dataset is actually structured, and have that be checkable | `splitGraph` |
+| Confirm a split honours the subject / batch / study / time axes it claims to | `splitGraph` or `bioLeak` |
+| Build folds that respect those axes, and impute or scale without leaking | `bioLeak` |
+| Ask how much of your AUC could be leakage or confounding | `bioLeak` |
+| Train and compare many algorithms on already-safe folds | `fastml` |
+| Explain a fitted model (SHAP, LIME, ALE, ICE) | `fastml` |
+| Hand a split definition to a Python collaborator | `splitGraph` (JSON `split_spec`) |
+
+: {tbl-colwidths="[78,22]"}
+
+## Installation
+
+``` r
+install.packages(c("splitGraph", "bioLeak", "fastml"))
+```
+
+Development versions:
+
+``` r
+# install.packages("pak")
+pak::pak(c(
+  "selcukorkmaz/splitGraph",
+  "selcukorkmaz/bioLeak",
+  "selcukorkmaz/fastml"
+))
+```
+
+::: {.gv-scope}
+**Scope.** These packages reduce leakage *risk*. None of them proves the absence
+of leakage or guarantees an unbiased performance estimate. What they do is make
+structural assumptions explicit and testable, which is a different and more
+modest claim. Each package states its own limits on its own site.
+:::
+
+## Why there is no `guardedverse` package
+
+Suites like [fastverse](https://fastverse.org) and the tidyverse ship an umbrella
+package that attaches the others. There is deliberately no such package here.
+
+An umbrella earns its place when it does something its members cannot: resolve
+conflicts, manage extensions, pin versions. A package whose only job is
+`library(splitGraph); library(bioLeak); library(fastml)` would add a release
+cycle, a CRAN dependency, and a reverse-dependency burden in exchange for two
+saved lines.
+
+What these three packages actually share is a *sequence* and a *vocabulary*, and
+both live better in a site than in a `Depends:` field. If a genuinely shared
+abstraction hardens later — the `split_spec` contract is the obvious candidate —
+an umbrella package becomes worth the cost. It is not worth it yet.

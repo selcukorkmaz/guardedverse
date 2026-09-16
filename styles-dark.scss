@@ -1,0 +1,28 @@
+/*-- scss:defaults --*/
+
+// Accents lightened for a dark background; the hues are the same family.
+$gv-splitgraph: #7BA7D4;
+$gv-bioleak:    #5FB99A;
+$gv-fastml:     #E08A58;
+
+$primary: $gv-splitgraph;
+$link-color: $gv-splitgraph;
+$body-color: #e8ecef;
+$headings-color: #f2f5f7;
+
+/*-- scss:rules --*/
+
+:root {
+  --gv-splitgraph: #{$gv-splitgraph};
+  --gv-bioleak:    #{$gv-bioleak};
+  --gv-fastml:     #{$gv-fastml};
+  --gv-surface:    #23282d;
+  --gv-surface-2:  #2b3136;
+  --gv-border:     #3c444b;
+  --gv-muted:      #a3adb6;
+  --gv-ink:        #e8ecef;
+}
+
+.gv-card { background: var(--gv-surface); }
+
+.gv-scope { background: var(--gv-surface-2); }

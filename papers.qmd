@@ -1,0 +1,83 @@
+---
+title: "Papers and citation"
+description: "The manuscripts behind the three packages, and how to cite them."
+---
+
+Each package has a methods paper that states its scope and its limits more
+carefully than documentation can. If you use a package in published work, please
+cite the paper where one is available, and the package otherwise.
+
+::: {.callout-warning appearance="simple"}
+Publication status changes. Check each package's `citation()` output in R for
+the current, authoritative reference — that is what gets updated on release.
+
+``` r
+citation("splitGraph")
+citation("bioLeak")
+citation("fastml")
+```
+:::
+
+## splitGraph
+
+**splitGraph: A validatable, cross-language representation of dataset dependency
+structure for leakage-aware evaluation**
+
+Selcuk Korkmaz. Department of Biostatistics, Trakya University, Edirne, Turkey.
+
+Prepared for the *Journal of Open Source Software*. The manuscript source is in
+[`paper.md`](https://github.com/selcukorkmaz/splitGraph/blob/main/paper.md) in
+the package repository.
+
+The argument: split correctness is currently re-litigated inside every tool that
+resamples, in that tool's own vocabulary. A validatable, serialisable
+representation of dataset structure lets the question be answered once and
+checked independently — including across languages.
+
+## bioLeak
+
+**bioLeak: Leakage-Aware Modeling and Diagnostics for Machine Learning in R**
+
+Selcuk Korkmaz. Department of Biostatistics, Trakya University, Edirne, Turkey.
+
+Prepared in *Journal of Statistical Software* format. The manuscript source,
+simulation scripts, and case study are under
+[`paper/`](https://github.com/selcukorkmaz/bioLeak/tree/main/paper) in the
+package repository.
+
+The argument: leakage-aware resampling is necessary but not sufficient. Once
+folds are clean you still need evidence about what remains — permutation gaps,
+batch association, target-leakage scans — and that evidence should be produced
+by the same machinery that produced the estimate.
+
+## fastml
+
+**fastml: Guarded Resampling Workflows for Safer Automated Machine Learning in R**
+
+Selcuk Korkmaz, Dincer Goksuluk, Eda Karaismailoglu.
+
+Prepared in *R Journal* format. The manuscript source is under
+[`RJ/`](https://github.com/selcukorkmaz/fastml/tree/main/RJ) in the package
+repository.
+
+The argument: AutoML tools compete on model search while leaving the evaluation
+design to the user, which is where the errors actually are. Constraining the
+workflow so that preprocessing cannot escape the resampling loop removes a whole
+class of user-induced error at no statistical cost.
+
+## Citing the family
+
+There is no paper for the collection, because there is no package for the
+collection — see [why](index.qmd#why-there-is-no-guardedverse-package). Cite the
+packages you actually used.
+
+If you are describing the overall approach in a methods section, the honest
+phrasing is something like:
+
+> Dataset dependency structure was encoded and validated with **splitGraph**
+> [ref], leakage-resistant resampling and post-hoc leakage auditing were
+> performed with **bioLeak** [ref], and model training and comparison used
+> **fastml** [ref] with the resampling scheme fixed upstream.
+
+The last clause matters: it is the part a reader cannot verify from the usual
+methods boilerplate, and it is the part that makes the rest meaningful.

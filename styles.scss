@@ -1,0 +1,267 @@
+/*-- scss:defaults --*/
+
+// The same three fonts the pkgdown sites bundle, so moving between the hub and
+// a package site does not feel like moving between two projects.
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,300..700;1,300..700&family=Source+Serif+4:ital,opsz,wght@0,8..60,300..700;1,8..60,300..700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+$font-family-sans-serif: "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !default;
+$font-family-monospace:  "JetBrains Mono", SFMono-Regular, Menlo, Consolas, monospace !default;
+$headings-font-family:   "Source Serif 4", Georgia, serif !default;
+
+// Family palette. These are the same accents the three pkgdown sites use.
+$gv-splitgraph: #4C78A8 !default;
+$gv-bioleak:    #2A7F62 !default;
+$gv-fastml:     #B85C2E !default;
+
+$primary:   #2F5F8F !default;   // darker than the splitGraph accent so links pass AA
+$body-color: #22282e !default;
+$link-color: $primary !default;
+
+$headings-font-weight: 600 !default;
+$border-radius: 0.375rem !default;
+
+/*-- scss:rules --*/
+
+:root {
+  --gv-splitgraph: #{$gv-splitgraph};
+  --gv-bioleak:    #{$gv-bioleak};
+  --gv-fastml:     #{$gv-fastml};
+  --gv-surface:    #ffffff;
+  --gv-surface-2:  #f6f8fa;
+  --gv-border:     #dfe4e9;
+  --gv-muted:      #5b6670;
+  --gv-ink:        #22282e;
+}
+
+h1, h2, h3 { letter-spacing: -0.01em; }
+
+h2 {
+  margin-top: 2.75rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--gv-border);
+}
+
+p, li { line-height: 1.65; }
+
+/* --- Hero ---------------------------------------------------------------- */
+
+.gv-hero {
+  padding: 2.5rem 0 1.25rem;
+
+  h1 {
+    font-size: clamp(2rem, 5vw, 2.9rem);
+    margin-bottom: 0.6rem;
+  }
+
+  .gv-tagline {
+    font-size: clamp(1.05rem, 2.4vw, 1.3rem);
+    color: var(--gv-muted);
+    max-width: 44rem;
+    margin-bottom: 0;
+  }
+}
+
+/* --- Pipeline ------------------------------------------------------------ */
+/* Real elements rather than an SVG: at 375px an SVG of this aspect ratio
+   scales its labels down to about 5px, and the text here has to stay readable. */
+
+.gv-pipeline { margin: 2.25rem 0 2.5rem; }
+
+.gv-flow {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+}
+
+.gv-flow-step {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.9rem 1rem 1rem;
+  border: 2px solid var(--gv-accent);
+  border-radius: $border-radius;
+  background: var(--gv-surface);
+  text-align: center;
+}
+
+.gv-flow-stage {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--gv-muted);
+}
+
+.gv-flow-name {
+  font-family: $headings-font-family;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--gv-accent);
+  line-height: 1.2;
+}
+
+.gv-flow-desc { font-size: 0.875rem; }
+
+.gv-flow-ops {
+  font-size: 0.75rem;
+  color: var(--gv-muted);
+  margin-top: auto;
+}
+
+.gv-flow--splitgraph { --gv-accent: var(--gv-splitgraph); }
+.gv-flow--bioleak    { --gv-accent: var(--gv-bioleak); }
+.gv-flow--fastml     { --gv-accent: var(--gv-fastml); }
+
+.gv-flow-arrow {
+  flex: 0 0 auto;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  opacity: 0.75;
+
+  code {
+    font-size: 0.7rem;
+    background: none;
+    padding: 0;
+    color: inherit;
+    white-space: nowrap;
+  }
+}
+
+.gv-flow-note {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--gv-muted);
+  margin-top: 0.9rem;
+}
+
+/* Stack on narrow screens and turn the arrows a quarter turn. */
+@media (max-width: 767px) {
+  .gv-flow { flex-direction: column; gap: 0.35rem; }
+
+  .gv-flow-step { text-align: left; }
+
+  .gv-flow-ops { margin-top: 0.15rem; }
+
+  .gv-flow-arrow {
+    flex-direction: row;
+    gap: 0.5rem;
+    padding-left: 0.35rem;
+    align-self: flex-start;
+
+    svg { transform: rotate(90deg); }
+  }
+}
+
+/* --- Package cards ------------------------------------------------------- */
+
+.gv-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0 2rem;
+}
+
+.gv-card {
+  border: 1px solid var(--gv-border);
+  border-top: 3px solid var(--gv-accent, var(--gv-splitgraph));
+  border-radius: $border-radius;
+  padding: 1.15rem 1.25rem 1rem;
+  background: var(--gv-surface);
+  display: flex;
+  flex-direction: column;
+
+  h3 {
+    margin-top: 0;
+    margin-bottom: 0.15rem;
+    font-size: 1.25rem;
+
+    a {
+      color: var(--gv-accent);
+      text-decoration: none;
+
+      &:hover { text-decoration: underline; }
+    }
+  }
+
+  .gv-card-role {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--gv-muted);
+    margin-bottom: 0.7rem;
+  }
+
+  p { font-size: 0.95rem; }
+
+  ul {
+    font-size: 0.9rem;
+    padding-left: 1.1rem;
+    margin-bottom: 0.9rem;
+  }
+
+  .gv-card-foot {
+    margin-top: auto;
+    font-size: 0.85rem;
+    color: var(--gv-muted);
+  }
+}
+
+.gv-card--splitgraph { --gv-accent: var(--gv-splitgraph); }
+.gv-card--bioleak    { --gv-accent: var(--gv-bioleak); }
+.gv-card--fastml     { --gv-accent: var(--gv-fastml); }
+
+/* --- Callout for the scope caveat the whole family shares ---------------- */
+
+.gv-scope {
+  border-left: 3px solid var(--gv-splitgraph);
+  background: var(--gv-surface-2);
+  padding: 0.9rem 1.15rem;
+  margin: 1.75rem 0;
+  border-radius: 0 $border-radius $border-radius 0;
+
+  p:last-child { margin-bottom: 0; }
+}
+
+/* --- Tables -------------------------------------------------------------- */
+
+table {
+  font-size: 0.95rem;
+
+  th {
+    border-bottom: 2px solid var(--gv-border) !important;
+    font-family: $font-family-sans-serif;
+  }
+}
+
+/* --- Inline package name tags -------------------------------------------- */
+
+.gv-tag {
+  font-family: $font-family-monospace;
+  font-size: 0.85em;
+  padding: 0.1em 0.4em;
+  border-radius: 0.25rem;
+  background: var(--gv-surface-2);
+  border: 1px solid var(--gv-border);
+  white-space: nowrap;
+}
+
+.gv-tag--splitgraph { color: var(--gv-splitgraph); }
+.gv-tag--bioleak    { color: var(--gv-bioleak); }
+.gv-tag--fastml     { color: var(--gv-fastml); }
+
+/* --- Navbar logo ---------------------------------------------------------- */
+/* Quarto sizes the navbar logo from the image's intrinsic dimensions; pin it
+   so the mark is legible rather than a few pixels tall. */
+
+.navbar-logo {
+  height: 26px;
+  width: auto;
+  max-height: 26px;
+  margin-right: 0.5rem;
+}
