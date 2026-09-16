@@ -6,3 +6,7 @@
 .DS_Store
 
 **/*.quarto_ipynb
+
+# The shared pkgdown theme lives here for convenience but is its own GitHub
+# repository (selcukorkmaz/leakdown). It must not be committed into this one.
+/leakdown/
