@@ -22,7 +22,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: quarto-dev/quarto-actions/setup@v2
         with:
@@ -35,6 +35,10 @@ jobs:
         run: quarto render
 
       - uses: actions/configure-pages@v5
+        with:
+          # Turn Pages on if it is not already; without this the job
+          # 404s on a repository that has never had Pages enabled.
+          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:
