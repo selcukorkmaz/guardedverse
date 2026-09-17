@@ -171,19 +171,3 @@ of leakage or guarantees an unbiased performance estimate. What they do is make
 structural assumptions explicit and testable, which is a different and more
 modest claim. Each package states its own limits on its own site.
 :::
-
-## Why there is no `guardedverse` package
-
-Suites like [fastverse](https://fastverse.org) and the tidyverse ship an umbrella
-package that attaches the others. There is deliberately no such package here.
-
-An umbrella earns its place when it does something its members cannot: resolve
-conflicts, manage extensions, pin versions. A package whose only job is
-`library(splitGraph); library(bioLeak); library(fastml)` would add a release
-cycle, a CRAN dependency, and a reverse-dependency burden in exchange for two
-saved lines.
-
-What these three packages actually share is a *sequence* and a *vocabulary*, and
-both live better in a site than in a `Depends:` field. If a genuinely shared
-abstraction hardens later — the `split_spec` contract is the obvious candidate —
-an umbrella package becomes worth the cost. It is not worth it yet.
