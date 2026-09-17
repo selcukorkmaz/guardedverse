@@ -14,7 +14,7 @@ subject and test on the other.
 
 ::: {.callout-note appearance="simple"}
 The code on this page was run against splitGraph 0.4.0, bioLeak 0.3.8 and
-fastml 0.7.5. It is shown rather than executed at build time so the site does
+fastml 0.7.9. It is shown rather than executed at build time so the site does
 not carry the full modelling dependency stack. For runnable, output-bearing
 versions, see `vignette("quick-start", package = "splitGraph")`,
 `vignette("bioLeak-intro", package = "bioLeak")`, and the
@@ -83,28 +83,28 @@ write_split_spec(spec, "split_spec.json")
 
 ## 2. Build and check the folds — bioLeak
 
-The spec is a sample-keyed table. Join its role columns onto the modelling data:
+`as_leaksplits()` consumes a `split_spec` directly. It reads `group_var`,
+`block_vars` and `time_var` off the spec and builds folds that honour them, so
+nothing about the structure has to be restated by hand:
 
 ``` r
-sd  <- as.data.frame(spec)
-dat <- merge(dat, sd[, c("sample_id", "group_id", "batch_group")], by = "sample_id")
+sp <- as_leaksplits(spec, data = dat, outcome = "y", v = 5)
 ```
 
-Then build folds that respect the grouping the graph derived:
+That single call is the whole seam between the two packages. If you are *not*
+coming from splitGraph, `make_split_plan()` is the direct route and takes the
+axes as arguments instead:
 
 ``` r
 sp <- make_split_plan(
-  dat,
-  outcome = "y",
-  mode    = "subject_grouped",
-  group   = spec$group_var,
-  v       = 5,
-  seed    = 1
+  dat, outcome = "y",
+  mode = "subject_grouped", group = "subject_id",
+  v = 5, seed = 1
 )
 ```
 
-And — this is the step worth not skipping — confirm the folds actually honour
-the axis they claim to:
+Either way — and this is the step worth not skipping — confirm the folds
+actually honour the axis they claim to:
 
 ``` r
 check_split_overlap(sp)
@@ -120,10 +120,10 @@ Zero overlap on every fold. A plain `vfold_cv()` on this dataset would have
 shown 20 subjects straddling the train/test boundary.
 
 ::: {.gv-scope}
-`mode = "combined"` handles several axes at once, taking a `constraints` list of
-`list(type = , col = )` entries where the first element drives the folds and the
-rest act as exclusion constraints. That is how `spec$block_vars` gets enforced
-rather than merely recorded.
+`make_split_plan(mode = "combined")` handles several axes at once, taking a
+`constraints` list of `list(type = , col = )` entries where the first element
+drives the folds and the rest act as exclusion constraints. That is how
+`spec$block_vars` gets enforced rather than merely recorded.
 :::
 
 ### Optional: fit and audit inside bioLeak
@@ -165,7 +165,7 @@ model <- fastml(
   label     = "y",
   algorithms = c("logistic_reg", "rand_forest", "xgboost"),
   resamples = rs,
-  exclude   = c("sample_id", "group_id", "batch_group"),
+  exclude   = "sample_id",
   seed      = 1
 )
 
@@ -176,9 +176,10 @@ Two details carry the guarantee:
 
 - `resamples = rs` means fastml uses the folds bioLeak built rather than
   generating its own. The structural work from step 1 survives to step 3.
-- `exclude =` drops the identifier and grouping columns from the feature set.
-  Leaving `group_id` in as a predictor would hand the model the answer — which
-  is target leakage of a particularly embarrassing kind.
+- `exclude =` drops the identifier column from the feature set. If you had
+  joined the spec's `group_id` onto `dat` yourself, exclude that too: leaving a
+  grouping key in as a predictor hands the model the answer, which is target
+  leakage of a particularly embarrassing kind.
 
 Then explain the winner:
 
@@ -191,6 +192,7 @@ fastexplain(model, method = "dalex")
 | Step | Without it | With it |
 |---|---|---|
 | splitGraph | The grouping lives in someone's head or a comment | The grouping is an object, validated, and serialisable to JSON |
+| `as_leaksplits()` | The grouping is restated by hand downstream, and can drift | The spec drives the folds directly |
 | `check_split_overlap()` | You assume the folds are clean | You know how many samples straddle each fold |
 | Guarded preprocessing | Scaling and imputation see the test fold | They are re-estimated per fold |
 | `resamples = rs` | fastml silently resamples from scratch | The upstream structure reaches the model comparison |

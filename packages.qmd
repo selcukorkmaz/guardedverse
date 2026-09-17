@@ -54,7 +54,7 @@ performance survives when the structure is controlled for.
 
 | Stage | Functions |
 |---|---|
-| Splits | `make_split_plan()`, `check_split_overlap()`, `as_rsample()` |
+| Splits | `as_leaksplits()`, `make_split_plan()`, `check_split_overlap()`, `as_rsample()` |
 | Guarded fitting | `fit_resample()`, `tune_resample()`, `impute_guarded()`, `guard_to_recipe()`, `predict_guard()` |
 | Auditing | `audit_leakage()`, `audit_leakage_by_learner()`, `audit_report()`, `calibration_summary()`, `confounder_sensitivity()`, `delta_lsi()`, `cv_ci()` |
 | Plots | `plot_perm_distribution()`, `plot_fold_balance()`, `plot_overlap_checks()`, `plot_calibration()`, `plot_time_acf()`, `plot_confounder_sensitivity()` |
@@ -70,8 +70,10 @@ over the whole dataset.
 audit produces evidence — a permutation gap, an association test, a duplicate
 count — and evidence is not a proof.
 
-**The seam.** `as_rsample()` converts a `LeakSplits` object into an `rsample`
-`rset`, which is the lingua franca for everything downstream in tidymodels.
+**The seams.** `as_leaksplits()` takes a splitGraph `split_spec` and builds
+folds from it directly, so the structure never has to be restated by hand.
+`as_rsample()` converts the resulting `LeakSplits` into an `rsample` `rset`,
+which is the lingua franca for everything downstream in tidymodels.
 
 ## fastml {#fastml}
 
